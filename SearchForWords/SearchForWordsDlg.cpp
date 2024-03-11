@@ -8,7 +8,7 @@ HANDLE hThreads[3];
 HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 //СЧЕТЧИК СЛОВ
-int forbiddenWordsCounter = 0;
+int totalWordCount = 0;
 BOOL progressCheck = false;
 
 //ДЛЯ ФАЙЛА С РЕЗУЛЬТАТОМ
@@ -17,7 +17,6 @@ vector <string> fileName;
 vector <string> filePath;
 vector <int> fileSize;
 vector <int> amountOfWords;
-
 
 SearchForWords::SearchForWords(void)
 {
@@ -33,10 +32,6 @@ void SearchForWords::Cls_OnClose(HWND hwnd)
     EndDialog(hwnd, 0);
 }
 
-void SearchForWords::Cls_OnTimer(HWND hwnd, UINT id)
-{
-    SendMessage(hProgress1, PBM_STEPIT, 0, 0);
-}
 
 //Инициализация 
 BOOL SearchForWords::Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
@@ -46,7 +41,7 @@ BOOL SearchForWords::Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
     // установка интервала для индикатора 
     SendMessage(hProgress1, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
     // установка шага приращения  индикатора 
-    SendMessage(hProgress1, PBM_SETSTEP, 20, 0);
+    SendMessage(hProgress1, PBM_SETSTEP, 45, 0);
     // установка текущей позиции индикатора
     SendMessage(hProgress1, PBM_SETPOS, 0, 0);
     // установка цвета фона индикатора
@@ -69,83 +64,14 @@ BOOL SearchForWords::Cls_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 }
 
 
-void SearchForWords::WriteInfo()
-{
-    SetEvent(hEvent);
-    ofstream outputFile("result.txt");
 
-    if (outputFile.is_open()) {
-        
-        for (size_t i = 0; i < fileName.size(); ++i) {
-            Sleep(100);
-            outputFile << "File`s name: " << fileName[i] << endl;
-            outputFile << "File`s size (in bytes): " << fileSize[i] << " bytes" << endl;
-            outputFile << "Forbidden Words: " << amountOfWords[i] << endl;
-            outputFile << "File`s path: " << filePath[i] << endl;
-            outputFile << endl;
-        }
-        outputFile.close();
-    }
-}
-
-void SearchForWords::GetFileInfo(const string& filePath, string& fileName, int& fileSize)
-{
-    fileName = filePath.substr(filePath.find_last_of("\\") + 1);
-
-    ifstream file(filePath, ios::binary | ios::ate);
-    fileSize = static_cast<int>(file.tellg());
-}
-
-void SearchForWords::GetInfo(const string& path)
-{
-    string name;
-    int size;
-    GetFileInfo(path, name, size);
-    fileName.push_back(name);
-    filePath.push_back(path);
-    fileSize.push_back(size);
-}
-
-DWORD WINAPI CountForbWords(LPVOID lpParam)
-{
-    string filePath = static_cast<const char*>(lpParam);
-    SearchForWords* searchForWords = (SearchForWords*)lpParam;
-    ifstream file(filePath);
-    int counter = 0;
-    if (file.is_open()) {
-        string word;
-        counter = 0;
-        while (file >> word) {
-            if (find(forbiddenWords.begin(), forbiddenWords.end(), word) != forbiddenWords.end()) {
-                ++forbiddenWordsCounter;
-                ++counter;
-            }
-        }
-        amountOfWords.push_back(counter);
-        file.close();
-
-
-        // Получаем статистику о файле
-        searchForWords->GetInfo(filePath);
-    }
-
-    return 0;
-}
-
-DWORD WINAPI ResultThread(LPVOID lpParam)
-{
-    SearchForWords* ptr = static_cast<SearchForWords*>(lpParam);
-
-    ptr->WriteInfo();
-    return 0;
-}
 
 DWORD WINAPI ProgressThread(LPVOID lpParam)
 {
-
     for (int i = 0; i <= 100; ++i) {
         SendMessage(hProgress1, PBM_SETPOS, i, 0);
-        Sleep(200);
+        Sleep(100);
+
         if (progressCheck) {
             while (progressCheck) {
                 Sleep(100);
@@ -156,66 +82,162 @@ DWORD WINAPI ProgressThread(LPVOID lpParam)
     return 0;
 }
 
-void ShowAmount() {
-    //Вывод кол-ва запрещенных слов в Edit
-    TCHAR buff[10];
-    wsprintf(buff, TEXT("%d"), forbiddenWordsCounter);
-    SetWindowText(hAmountWords, buff);
+
+//Функция для записи информации в файл
+void SaveInfo() {
+    SetEvent(hEvent);
+    ofstream outputFile("result.txt");
+    Sleep(100);
+    if (outputFile.is_open()) {
+
+        for (size_t i = 0; i < fileName.size(); ++i) {
+
+            outputFile << "File`s Name: " << fileName[i] << endl;
+            outputFile << "File`s Size(in bytes): " << fileSize[i] << " bytes" << endl;
+            outputFile << "File`s Path: " << filePath[i] << endl;
+            outputFile << "Amount of forbiddenWords: " << amountOfWords[i] << endl;
+            outputFile << endl;
+        }
+
+        outputFile.close();
+    }
 }
 
-DWORD WINAPI MainThread(LPVOID lpParam)
-{
-    SearchForWords* filePtr = reinterpret_cast<SearchForWords*>(lpParam);
-    HANDLE hResultThread = CreateThread(NULL, 0, ResultThread, NULL, 0, NULL);
+// Функция для получения информации о файле
+void GetFileInfo(const string& Path, string& name, int& size) {
+    name = Path.substr(Path.find_last_of("\\") + 1);
 
-    //количество файлов - 3
+    ifstream file(Path, ios::binary | ios::ate);
+    size = static_cast<int>(file.tellg());
+}
 
-    //Путь к папке с файлами
-    string path = "C:\\Users\\Admin\\source\\repos\\SearchForWords\\SearchForWords\\folder\\";
+// Функция для получения информации
+void GetInfo(const string& Path) {
+    string name;
+    int size;
+    GetFileInfo(Path, name, size);
+
+    // Добавляем информацию о файле
+    fileName.push_back(name);
+    filePath.push_back(Path);
+    fileSize.push_back(size);
+
+}
+
+DWORD WINAPI CountWords(LPVOID lpParam) {
+    string filePath = static_cast<const char*>(lpParam);
+    SearchForWords* findWords = (SearchForWords*)lpParam;
+    ifstream file(filePath);
+    int counter = 0;
+    if (file.is_open()) {
+        string word;
+        counter = 0;
+        while (file >> word) {
+            if (find(forbiddenWords.begin(), forbiddenWords.end(), word) != forbiddenWords.end()) {
+                ++totalWordCount;
+                ++counter;
+            }
+        }
+        amountOfWords.push_back(counter);
+        file.close();
+        GetInfo(filePath);
+    }
+
+    return 0;
+}
+
+DWORD WINAPI MainThread(LPVOID lpParam);
+
+DWORD WINAPI InfoThread(LPVOID lpParam) {
+    SaveInfo();
+    return 0;
+}
 
 
+void HideWords() {
+
+    size_t currentIndex = 0;
+    wstring filePath = L"Q:\\ProcProg\\111111\\SearchForWords2\\SearchForWords\\folder\\hidden.txt";
+
+    HANDLE hFile = CreateFile(filePath.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hFile != INVALID_HANDLE_VALUE) {
+
+        DWORD bytesWritten;
+        for (const auto& word : forbiddenWords) {
+            string replacement = "******* ";
+            currentIndex++;
+            if (!WriteFile(hFile, replacement.c_str(), static_cast<DWORD>(replacement.size()), &bytesWritten, NULL)) {
+                MessageBoxA(NULL, "Failed to create file", "Result", MB_OK | MB_ICONINFORMATION);
+                CloseHandle(hFile);
+                return;
+            }
+            if (currentIndex == forbiddenWords.size()){}
+        }
+        CloseHandle(hFile);
+    }
+    else{
+        MessageBoxA(NULL, "Failed to create file", "Result", MB_OK | MB_ICONINFORMATION);
+    }
+
+}
+// Функция для записи слов в файл
+void WriteWordsToFile() {
+    ofstream outputFile("statistic.txt", ios::app);
+
+    if (outputFile.is_open()) {
+        outputFile << "your words: ";
+        for (const auto& word : forbiddenWords) {
+            outputFile << word << " ";
+        }
+        outputFile << endl;
+        outputFile.close();
+    }
+}
+
+// Основная функция обработки файлов
+DWORD WINAPI MainThread(LPVOID lpParam) {
+    SearchForWords* ptr = (SearchForWords*)lpParam;
+
+    HANDLE hInfoThread = CreateThread(NULL, 0, InfoThread, NULL, 0, NULL);
+    string directoryPath = "Q:\\ProcProg\\111111\\SearchForWords2\\SearchForWords\\folder\\";
     for (int i = 1; i <= 3; ++i) {
-        string filePath = path + to_string(i) + ".txt";
-
-        // create threads for files
-        HANDLE hThread = CreateThread(NULL, 0, CountForbWords, (LPVOID)filePath.c_str(), 0, NULL);
-
-        // save thread`s handle in array
+        string filePath = directoryPath + to_string(i) + ".txt";
+        HANDLE hThread = CreateThread(NULL, 0, CountWords, (LPVOID)filePath.c_str(), 0, NULL);
         hThreads[i - 1] = hThread;
-        // waiting for thread to complete
         WaitForSingleObject(hThread, INFINITE);
     }
 
     WaitForMultipleObjects(3, hThreads, TRUE, INFINITE);
-    
-    // Поток для прогресс бара
-    HANDLE hProgress1Thread = CreateThread(NULL, 0, ProgressThread, hProgress1, 0, NULL);
-    // Ожидание индикатора на 100
-    WaitForSingleObject(hProgress1Thread, INFINITE);
-    for (int i = 1; i <= 3; ++i) {
+
+    HANDLE hProgressThread = CreateThread(NULL, 0, ProgressThread, hProgress1, 0, NULL);
+    WaitForSingleObject(hProgressThread, INFINITE);
+
+    WaitForSingleObject(hEvent, INFINITE);
+    Sleep(500);
+
+    for (int i = 0; i < 3; ++i) {
         CloseHandle(hThreads[i]);
     }
 
-    WaitForSingleObject(hEvent, INFINITE);
-    Sleep(300);
-
-    //Вывод кол-ва запрещенных слов в Edit
-    ShowAmount();
+    TCHAR resNum[100];
+    wsprintf(resNum, TEXT("%d"), totalWordCount);
+    SetWindowText(hAmountWords, resNum);
+    
+    HideWords();
+    WriteWordsToFile();
 
     char buf[100];
     ifstream in("result.txt", ios::in | ios::binary);
 
-    if (!in)
-    {
+    if (!in){
         MessageBoxA(hDialog, "Ошибка открытия файла!", "Ошибка", MB_OK | MB_ICONINFORMATION);
         return 1;
     }
     else
     {
-        while (!in.eof())
-        {
+        while (!in.eof()){
             in.getline(buf, 100);
-
             SendMessageA(hShowRes, EM_REPLACESEL, 0, (LPARAM)buf);
             SendMessageA(hShowRes, EM_REPLACESEL, 0, (LPARAM)"\r\n");
         }
@@ -223,33 +245,13 @@ DWORD WINAPI MainThread(LPVOID lpParam)
 
     in.close();
 
-
-    ofstream outputFile("result.txt", ios::app);
-
-    if (outputFile.is_open()) {
-        outputFile << "your words: \n";
-        for (const auto& word : forbiddenWords) {
-            outputFile << word << " ";
-        }
-        outputFile << endl;
-        outputFile.close();
-    }
-
-    //замена слов на *******
-    ofstream out("C:\\Users\\Admin\\source\\repos\\SearchForWords\\SearchForWords\\hidden.txt");
-
-    if (out.is_open()) {
-        for (const auto& word : forbiddenWords) {
-            out << "******* ";
-        }
-
-        out.close();
-    }
-    else {
-        MessageBoxA(NULL, "Не удалось открыть файл", "Ошибка", MB_OK | MB_ICONINFORMATION);
-    }
-
     return 0;
+}
+
+
+void SearchForWords::Cls_OnTimer(HWND hwnd, UINT id)
+{
+    SendMessage(hProgress1, PBM_STEPIT, 0, 0);
 }
 
 BOOL CALLBACK SearchForWords::DlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -260,27 +262,26 @@ BOOL CALLBACK SearchForWords::DlgProc(HWND hwnd, UINT message, WPARAM wParam, LP
         HANDLE_MSG(hwnd, WM_INITDIALOG, ptr->Cls_OnInitDialog);
 
     case WM_COMMAND:
-        if (LOWORD(wParam) == IDC_BUTTON3)
-        {
+        //КНОПКА СТАРТ
+        if (LOWORD(wParam) == IDC_BUTTON3) {
+            EnableWindow(hStarter, TRUE);
             CreateThread(NULL, 0, MainThread, NULL, 0, NULL);
         }
-        if (LOWORD(wParam) == IDC_BUTTON4)
-        {
+        //КНОПКА СТОП
+        if (LOWORD(wParam) == IDC_BUTTON4) {
             progressCheck = true;
-
         }
-        if (LOWORD(wParam) == IDC_BUTTON2)
-        {
+        //КНОПКА ПРОДОЛЖИТЬ
+        if (LOWORD(wParam) == IDC_BUTTON2) {
             progressCheck = false;
-
         }
-        if (LOWORD(wParam) == IDC_BUTTON5)
-        {
+        //КНОПКА ВЫХОД
+        if (LOWORD(wParam) == IDC_BUTTON5){
             ReleaseMutex(hMutex);
             EndDialog(hwnd, 0);
         }
-        if (LOWORD(wParam) == IDC_BUTTON1)
-        {
+        //КНОПКА ЗАГРУЗИТЬ ФАЙЛ
+        if (LOWORD(wParam) == IDC_BUTTON1){
             TCHAR FullPath[MAX_PATH] = { 0 };
             OPENFILENAME open = { sizeof(OPENFILENAME) };
             open.hwndOwner = hwnd;
@@ -290,9 +291,11 @@ BOOL CALLBACK SearchForWords::DlgProc(HWND hwnd, UINT message, WPARAM wParam, LP
             open.lpstrInitialDir = TEXT("C:\\");
             open.Flags = OFN_CREATEPROMPT | OFN_PATHMUSTEXIST;
 
-            if (GetOpenFileName(&open)){
+            if (GetOpenFileName(&open))
+            {
                 ifstream file(open.lpstrFile);
-                if (file.is_open()){
+                if (file.is_open())
+                {
                     string word;
                     while (file >> word)
                     {
@@ -300,38 +303,45 @@ BOOL CALLBACK SearchForWords::DlgProc(HWND hwnd, UINT message, WPARAM wParam, LP
                     }
                     file.close();
 
+                    string txt = "your array:\n";
+                    for (const auto& word : forbiddenWords){
+                        txt += word + "\r\n";
+                    }
 
                     EnableWindow(hEnterWords, FALSE);
-                    EnableWindow(hChooseFile, FALSE);
-                    
-                    MessageBox(hwnd, TEXT("Файл получен!"), TEXT("Работа с файлом"), MB_OK | MB_ICONINFORMATION);
-
+                    EnableWindow(hStarter, TRUE);
                 }
                 else{
-                    MessageBox(hwnd, TEXT("Не удалось открыть файл!"), TEXT("Ошибка"), MB_OK | MB_ICONERROR);
+                    MessageBox(hwnd, TEXT("Error opening the file!"), TEXT("Error"), MB_OK | MB_ICONERROR);
                 }
             }
         }
+
         break;
+
+
     }
+    int textLength = GetWindowTextLength(hEnterWords);
 
-    int textLength = GetWindowTextLength(hEnterWords) +1;
+    if (textLength == 0){}
+    else{
+        vector<TCHAR> buffer(textLength + 1);
+        GetWindowText(hEnterWords, buffer.data(), textLength + 1);
 
-    if (textLength != 0){
-        EnableWindow(hStarter, TRUE);
-        vector<TCHAR> temp(textLength);
-        GetWindowText(hEnterWords, temp.data(), textLength);
-        string str(temp.begin(), temp.end());
+        // Преобразуем TCHAR в string
+        string text(buffer.begin(), buffer.end());
 
-        istringstream stream(str);
+        forbiddenWords.clear();
+
+        istringstream stream(text);
         string word;
 
-        while (stream >> word){
+        while (stream >> word)
+        {
             forbiddenWords.push_back(word);
         }
-    }
-    else{
-        EnableWindow(hStarter, FALSE);
+
+        EnableWindow(hStarter, TRUE);
     }
 
     return FALSE;

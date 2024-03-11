@@ -1,0 +1,15 @@
+File`s Name: 1.txt
+File`s Size(in bytes): 14 bytes
+File`s Path: C:\Users\Admin\source\repos\SearchForWords\SearchForWords\folder\1.txt
+Amount of forbiddenWords: 0
+
+File`s Name: 2.txt
+File`s Size(in bytes): 4 bytes
+File`s Path: C:\Users\Admin\source\repos\SearchForWords\SearchForWords\folder\2.txt
+Amount of forbiddenWords: 0
+
+File`s Name: 3.txt
+File`s Size(in bytes): 0 bytes
+File`s Path: C:\Users\Admin\source\repos\SearchForWords\SearchForWords\folder\3.txt
+Amount of forbiddenWords: 0
+

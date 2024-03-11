@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by SearchForWords.rc
+// Включаемый файл, созданный в Microsoft Visual C++.
+// Используется SearchForWords.rc
 //
 #define IDC_MYICON                      2
 #define IDD_SEARCHFORWORDS_DIALOG       102
@@ -12,6 +12,7 @@
 #define IDC_SEARCHFORWORDS              109
 #define IDR_MAINFRAME                   128
 #define IDD_DIALOG1                     129
+#define IDI_ICON1                       130
 #define IDC_BUTTON1                     1000
 #define IDC_BUTTON2                     1001
 #define IDC_EDIT1                       1002
@@ -28,7 +29,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        130
+#define _APS_NEXT_RESOURCE_VALUE        131
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1009
 #define _APS_NEXT_SYMED_VALUE           110

@@ -48,5 +48,8 @@
     <Image Include="SearchForWords.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="C:\Users\MISHA\Downloads\trophy_jewelry_winner_win_treasure_gift_blue_diamond_game_icon_262398.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
