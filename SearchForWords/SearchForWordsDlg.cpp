@@ -161,22 +161,6 @@ void ShowAmount() {
     TCHAR buff[10];
     wsprintf(buff, TEXT("%d"), forbiddenWordsCounter);
     SetWindowText(hAmountWords, buff);
-
-    char buf[100];
-    ifstream in("result.txt", ios::in | ios::binary);
-
-    if (!in) {
-        MessageBoxA(hDialog, "Ошибка открытия файла!", "Ошибка", MB_OK | MB_ICONINFORMATION);
-    }
-    else {
-        while (!in.eof()) {
-            in.getline(buf, 100);
-            SendMessageA(hShowRes, EM_REPLACESEL, 0, (LPARAM)buf);
-            SendMessageA(hShowRes, EM_REPLACESEL, 0, (LPARAM)"\r\n");
-        }
-    }
-
-    in.close();
 }
 
 DWORD WINAPI MainThread(LPVOID lpParam)
@@ -217,6 +201,28 @@ DWORD WINAPI MainThread(LPVOID lpParam)
 
     //Вывод кол-ва запрещенных слов в Edit
     ShowAmount();
+
+    char buf[100];
+    ifstream in("result.txt", ios::in | ios::binary);
+
+    if (!in)
+    {
+        MessageBoxA(hDialog, "Ошибка открытия файла!", "Ошибка", MB_OK | MB_ICONINFORMATION);
+        return 1;
+    }
+    else
+    {
+        while (!in.eof())
+        {
+            in.getline(buf, 100);
+
+            SendMessageA(hShowRes, EM_REPLACESEL, 0, (LPARAM)buf);
+            SendMessageA(hShowRes, EM_REPLACESEL, 0, (LPARAM)"\r\n");
+        }
+    }
+
+    in.close();
+
 
     ofstream outputFile("result.txt", ios::app);
 
